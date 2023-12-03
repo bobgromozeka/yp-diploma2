@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
+	"github.com/bobgromozeka/yp-diploma2/internal/server/storage"
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -20,8 +21,13 @@ func Run() {
 	}
 	bootstrap(db)
 
+	storagesFactory := storage.NewSQLiteStoragesFactory(db)
+
+	uStorage := storagesFactory.CreateUserStorage()
+	dkStorage := storagesFactory.CreateDataKeeperStorage()
+
 	grpcServer := grpc.NewServer(
-		db, grpc.ServerConfig{
+		uStorage, dkStorage, grpc.ServerConfig{
 			Addr: ":14444", // TODO add address configuration from flags
 		},
 	)

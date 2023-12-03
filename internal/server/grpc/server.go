@@ -2,9 +2,12 @@ package grpc
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net"
+
+	"github.com/bobgromozeka/yp-diploma2/internal/interfaces/datakeeper"
+	"github.com/bobgromozeka/yp-diploma2/internal/server/grpc/interceptors"
+	"github.com/bobgromozeka/yp-diploma2/internal/server/storage"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -18,14 +21,16 @@ type ServerConfig struct {
 }
 
 type Server struct {
-	db   *sql.DB
-	conf ServerConfig
+	uStorage  storage.UserStorage
+	dkStorage storage.DataKeeperStorage
+	conf      ServerConfig
 }
 
-func NewServer(db *sql.DB, c ServerConfig) *Server {
+func NewServer(us storage.UserStorage, dks storage.DataKeeperStorage, c ServerConfig) *Server {
 	return &Server{
-		db:   db,
-		conf: c,
+		uStorage:  us,
+		dkStorage: dks,
+		conf:      c,
 	}
 }
 
@@ -35,12 +40,15 @@ func (s *Server) Start(ctx context.Context) error {
 		return err
 	}
 
-	var opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(opts...)
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptors.AuthnUnary),
+		grpc.StreamInterceptor(interceptors.AuthnStream),
+	)
 
 	reflection.Register(grpcServer)
 
-	user.RegisterUserServer(grpcServer, services.NewUserService(s.db))
+	user.RegisterUserServer(grpcServer, services.NewUserService(s.uStorage))
+	datakeeper.RegisterDataKeeperServer(grpcServer, services.NewDataKeeperService(s.dkStorage))
 
 	go func() {
 		<-ctx.Done()

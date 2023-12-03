@@ -5,12 +5,12 @@ import (
 	"errors"
 	"log"
 
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/bobgromozeka/yp-diploma2/internal/interfaces/user"
+	"github.com/bobgromozeka/yp-diploma2/internal/jwt"
 	"github.com/bobgromozeka/yp-diploma2/internal/server/storage"
 )
 
@@ -19,8 +19,6 @@ const minPasswordLen = 8
 var (
 	ErrInternalServerError = status.Errorf(codes.Internal, "Internal server error")
 )
-
-const JWTSecretKey = "6ecafb3785ddd92172f71ec4821211e124e0527a268cb6445c8fdaa02c6a2628f25bfb17ef95f1a0873ab87f6f559958deccb7c7902514f0164efd99950a670c"
 
 type UserService struct {
 	user.UnimplementedUserServer
@@ -93,13 +91,7 @@ func (s *UserService) SignIn(ctx context.Context, req *user.SignInRequest) (*use
 		}, nil
 	}
 
-	token := jwt.NewWithClaims(
-		jwt.SigningMethodHS256, jwt.MapClaims{
-			"userID": u.ID,
-		},
-	)
-
-	strToken, signErr := token.SignedString([]byte(JWTSecretKey))
+	strToken, signErr := jwt.NewJWTWithUserID(u.ID)
 	if signErr != nil {
 		log.Default().Println("Error while signing JWT key: ", signErr)
 		return nil, ErrInternalServerError

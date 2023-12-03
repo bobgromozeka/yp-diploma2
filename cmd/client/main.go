@@ -13,7 +13,7 @@ func main() {
 
 	helpers.SetupGracefulShutdown(cancel)
 
-	if clientErr := client.Run(ctx); clientErr != nil {
+	if clientErr := client.Run(ctx, client.ApplicationConfig{Addr: ":14444"}); clientErr != nil { // TODO move add to app configuration
 		log.Fatalln(clientErr)
 	}
 }

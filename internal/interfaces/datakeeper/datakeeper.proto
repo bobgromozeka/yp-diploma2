@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package datakeeper;
+
+option go_package = "github.com/bobgromozeka/yp-diploma2/internal/interfaces/datakeeper";
+
+service DataKeeper {
+  rpc CreatePasswordPair(CreatePasswordPairRequest) returns (EmptyResponse);
+  rpc GetData(GetDataRequest) returns (stream GetDataResponse);
+}
+
+message EmptyResponse {}
+
+message CreatePasswordPairRequest {
+  string login = 1;
+  string password = 2;
+  optional string description = 3;
+}
+
+message GetDataRequest {}
+
+message PasswordPair {
+  int32 ID = 1;
+  string login = 2;
+  string password = 3;
+  optional string description = 4;
+}
+
+message Text {
+  int32 ID = 1;
+  string name = 2;
+  string text = 3;
+  optional string description = 4;
+}
+
+message GetDataResponse {
+  repeated PasswordPair passwordPairs = 1;
+  repeated Text texts = 2;
+}
