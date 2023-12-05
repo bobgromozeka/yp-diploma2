@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"time"
@@ -30,6 +31,7 @@ const (
 
 type DataPage struct {
 	app             *Application
+	page            *tview.Pages
 	currentDataType DataType
 	currentFocus    int
 	typesList       *tview.List
@@ -70,13 +72,13 @@ func (p *DataPage) Render() *tview.Pages {
 }
 
 func (p *DataPage) render() *tview.Pages {
-	page := pages("data")
+	p.page = pages("data")
 
-	page.SetBorder(false)
+	p.page.SetBorder(false)
 	grid := tview.NewGrid()
 	p.dataGrid = grid
 
-	page.
+	p.page.
 		AddPage("content", grid, true, true)
 
 	typeList := tview.NewList()
@@ -102,7 +104,7 @@ func (p *DataPage) render() *tview.Pages {
 
 	actionsNote := tview.NewTextView()
 	actionsNote.
-		SetText("(Ctrl-A) Add new    (Esc) focus previous").
+		SetText("(Ctrl-A) Add new    (Esc) focus previous    ").
 		SetTextColor(tcell.ColorGreen)
 
 	emptyGrid := tview.NewGrid()
@@ -131,7 +133,7 @@ func (p *DataPage) render() *tview.Pages {
 			},
 		)
 
-	return page
+	return p.page
 }
 
 func (p *DataPage) startFetchingData(ctx context.Context) chan struct{} {
@@ -166,6 +168,7 @@ func (p *DataPage) startFetchingData(ctx context.Context) chan struct{} {
 				p.app.storage.Texts = mapGRPCTextsToStorage(data.Texts)
 				p.app.tApp.QueueUpdateDraw(func() {
 					p.rerenderDataBlock()
+					p.clearEntityView()
 				})
 			}
 		}
@@ -185,12 +188,13 @@ func (p *DataPage) renderPasswordPairsList() {
 		SetTitle(" Password pairs ")
 
 	for _, pp := range p.app.storage.PasswordPairs {
+		id := pp.ID
 		login := pp.Login
 		pass := pp.Password
 		desc := pp.Description
 		list.
 			AddItem(pp.Login, "", 0, func() {
-				p.renderPasswordPairsView(login, pass, desc)
+				p.renderPasswordPairsView(id, login, pass, desc)
 			})
 	}
 
@@ -256,7 +260,7 @@ func (p *DataPage) detachError() {
 
 }
 
-func (p *DataPage) renderPasswordPairsView(login, password string, description *string) {
+func (p *DataPage) renderPasswordPairsView(id int, login, password string, description *string) {
 	g := tview.NewGrid()
 	g.SetBorder(true)
 	g.SetTitle(" Password ")
@@ -281,26 +285,74 @@ func (p *DataPage) renderPasswordPairsView(login, password string, description *
 		AddItem(passwordLabel, 1, 0, 1, 1, 0, 0, false).
 		AddItem(passwordContent, 1, 1, 1, 3, 0, 0, false)
 
+	deleteButton := tview.NewButton("Remove")
+	deleteButton.
+		SetSelectedFunc(func() {
+			confirmationModal := tview.NewModal()
+			confirmationModal.
+				SetText(fmt.Sprintf("Confirm delete of password pair with login %s ?", login)).
+				AddButtons([]string{"Yes", "No"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					if buttonLabel == "Yes" {
+						_, err := p.app.dClient.RemovePasswordPair(p.app.ctx, &datakeeper.RemovePasswordPairRequest{
+							ID: int32(id),
+						})
+						if err != nil {
+							p.attachError("Removing entity error. Contact me in Telegram @xxSerk d^_^b: " + err.Error())
+						}
+
+					}
+					p.removeConfirmationModal()
+					p.setFocusView()
+				})
+			p.addConfirmationModal(confirmationModal)
+		})
+
+	descriptionContent := tview.NewTextView()
 	if description != nil {
 		descriptionLabel := tview.NewTextView()
 		descriptionLabel.SetText("Description (scrollable)")
 
-		descriptionContent := tview.NewTextView()
 		descriptionContent.SetText(*description)
 		descriptionContent.SetBackgroundColor(tcell.ColorBlue)
 		descriptionContent.SetScrollable(true)
 		descriptionContent.SetFocusFunc(func() {
 			descriptionLabel.SetTextColor(tcell.ColorGreen)
 		})
-		descriptionLabel.SetBlurFunc(func() {
+		descriptionContent.SetBlurFunc(func() {
 			descriptionLabel.SetTextColor(tcell.ColorWhite)
 		})
 
 		g.AddItem(descriptionLabel, 2, 0, 1, 1, 0, 0, false)
 		g.AddItem(descriptionContent, 2, 1, 1, 3, 0, 0, true)
+
+		descriptionContent.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			if event.Key() == tcell.KeyTab {
+				p.app.tApp.SetFocus(deleteButton)
+				return nil
+			}
+
+			return event
+		})
 	}
 
-	g.SetRows(1, 1, 15, 0)
+	var focusButton bool
+	if description == nil {
+		focusButton = true
+	} else {
+		deleteButton.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			if event.Key() == tcell.KeyTab {
+				p.app.tApp.SetFocus(descriptionContent)
+				return nil
+			}
+
+			return event
+		})
+	}
+
+	g.AddItem(deleteButton, 3, 1, 1, 1, 0, 0, focusButton)
+
+	g.SetRows(1, 1, 15, 1, 0)
 	g.SetGap(1, 0)
 
 	p.dataGrid.RemoveItem(p.entityView)
@@ -352,7 +404,7 @@ func (p *DataPage) renderTextsView(name, text string, description *string) {
 		descriptionContent.SetFocusFunc(func() {
 			descriptionLabel.SetTextColor(tcell.ColorGreen)
 		})
-		descriptionLabel.SetBlurFunc(func() {
+		descriptionContent.SetBlurFunc(func() {
 			descriptionLabel.SetTextColor(tcell.ColorWhite)
 		})
 
@@ -410,4 +462,21 @@ func (p *DataPage) setFocusTypes() {
 func (p *DataPage) stopFetching() {
 	p.pageCancelCtx()
 	<-p.fetchingDoneCh
+}
+
+func (p *DataPage) clearEntityView() {
+	emptyGrid := tview.NewGrid()
+	emptyGrid.SetBorder(true)
+
+	p.dataGrid.RemoveItem(p.entityView)
+	p.entityView = emptyGrid
+	p.dataGrid.AddItem(emptyGrid, 0, 4, 12, 2, 0, 0, false)
+}
+
+func (p *DataPage) addConfirmationModal(m *tview.Modal) {
+	p.page.AddPage("conf_modal", m, false, true)
+}
+
+func (p *DataPage) removeConfirmationModal() {
+	p.page.RemovePage("conf_modal")
 }

@@ -6,6 +6,7 @@ option go_package = "github.com/bobgromozeka/yp-diploma2/internal/interfaces/dat
 
 service DataKeeper {
   rpc CreatePasswordPair(CreatePasswordPairRequest) returns (EmptyResponse);
+  rpc RemovePasswordPair(RemovePasswordPairRequest) returns (EmptyResponse);
   rpc GetData(GetDataRequest) returns (stream GetDataResponse);
 }
 
@@ -36,4 +37,8 @@ message Text {
 message GetDataResponse {
   repeated PasswordPair passwordPairs = 1;
   repeated Text texts = 2;
+}
+
+message RemovePasswordPairRequest {
+  int32 ID = 1;
 }

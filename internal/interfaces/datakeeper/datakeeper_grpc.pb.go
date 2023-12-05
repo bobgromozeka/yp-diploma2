@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	DataKeeper_CreatePasswordPair_FullMethodName = "/datakeeper.DataKeeper/CreatePasswordPair"
+	DataKeeper_RemovePasswordPair_FullMethodName = "/datakeeper.DataKeeper/RemovePasswordPair"
 	DataKeeper_GetData_FullMethodName            = "/datakeeper.DataKeeper/GetData"
 )
 
@@ -28,6 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DataKeeperClient interface {
 	CreatePasswordPair(ctx context.Context, in *CreatePasswordPairRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	RemovePasswordPair(ctx context.Context, in *RemovePasswordPairRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 	GetData(ctx context.Context, in *GetDataRequest, opts ...grpc.CallOption) (DataKeeper_GetDataClient, error)
 }
 
@@ -42,6 +44,15 @@ func NewDataKeeperClient(cc grpc.ClientConnInterface) DataKeeperClient {
 func (c *dataKeeperClient) CreatePasswordPair(ctx context.Context, in *CreatePasswordPairRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
 	out := new(EmptyResponse)
 	err := c.cc.Invoke(ctx, DataKeeper_CreatePasswordPair_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataKeeperClient) RemovePasswordPair(ctx context.Context, in *RemovePasswordPairRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, DataKeeper_RemovePasswordPair_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -85,6 +96,7 @@ func (x *dataKeeperGetDataClient) Recv() (*GetDataResponse, error) {
 // for forward compatibility
 type DataKeeperServer interface {
 	CreatePasswordPair(context.Context, *CreatePasswordPairRequest) (*EmptyResponse, error)
+	RemovePasswordPair(context.Context, *RemovePasswordPairRequest) (*EmptyResponse, error)
 	GetData(*GetDataRequest, DataKeeper_GetDataServer) error
 	mustEmbedUnimplementedDataKeeperServer()
 }
@@ -95,6 +107,9 @@ type UnimplementedDataKeeperServer struct {
 
 func (UnimplementedDataKeeperServer) CreatePasswordPair(context.Context, *CreatePasswordPairRequest) (*EmptyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreatePasswordPair not implemented")
+}
+func (UnimplementedDataKeeperServer) RemovePasswordPair(context.Context, *RemovePasswordPairRequest) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemovePasswordPair not implemented")
 }
 func (UnimplementedDataKeeperServer) GetData(*GetDataRequest, DataKeeper_GetDataServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetData not implemented")
@@ -130,6 +145,24 @@ func _DataKeeper_CreatePasswordPair_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DataKeeper_RemovePasswordPair_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemovePasswordPairRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataKeeperServer).RemovePasswordPair(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataKeeper_RemovePasswordPair_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataKeeperServer).RemovePasswordPair(ctx, req.(*RemovePasswordPairRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _DataKeeper_GetData_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(GetDataRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -161,6 +194,10 @@ var DataKeeper_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreatePasswordPair",
 			Handler:    _DataKeeper_CreatePasswordPair_Handler,
+		},
+		{
+			MethodName: "RemovePasswordPair",
+			Handler:    _DataKeeper_RemovePasswordPair_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

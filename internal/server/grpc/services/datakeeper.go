@@ -81,11 +81,30 @@ func (s *DataKeeperService) GetData(req *datakeeper.GetDataRequest, serv datakee
 	}
 }
 
+func (s *DataKeeperService) RemovePasswordPair(ctx context.Context, req *datakeeper.RemovePasswordPairRequest) (*datakeeper.EmptyResponse, error) {
+	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	if !ok {
+		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		return nil, ErrInternalServerError
+	}
+
+	err := s.dks.RemovePasswordPair(ctx, int(uID), int(req.ID))
+	if err != nil {
+		log.Default().Println("Error during removing password pair: ", err)
+		return nil, ErrInternalServerError
+	}
+
+	s.notifyUserSubs(int(uID))
+
+	return &datakeeper.EmptyResponse{}, nil
+}
+
 func mapStoragePairsToGRPC(spp []storage.PasswordPair) []*datakeeper.PasswordPair {
 	gpp := make([]*datakeeper.PasswordPair, len(spp))
 
 	for i, pp := range spp {
 		gpp[i] = &datakeeper.PasswordPair{
+			ID:          int32(pp.ID),
 			Login:       pp.Login,
 			Password:    pp.Password,
 			Description: pp.Description,
@@ -100,6 +119,7 @@ func mapStorageTextsToGRPC(st []storage.Text) []*datakeeper.Text {
 
 	for i, t := range st {
 		gt[i] = &datakeeper.Text{
+			ID:          int32(t.ID),
 			Name:        t.Name,
 			Text:        t.T,
 			Description: t.Description,
