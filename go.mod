@@ -5,6 +5,7 @@ go 1.21.0
 require (
 	github.com/gdamore/tcell/v2 v2.6.0
 	github.com/golang-jwt/jwt/v5 v5.1.0
+	github.com/google/uuid v1.3.1
 	github.com/mattn/go-sqlite3 v1.14.18
 	github.com/rivo/tview v0.0.0-20231126152417-33a1d271f2b6
 	github.com/stretchr/testify v1.8.4
