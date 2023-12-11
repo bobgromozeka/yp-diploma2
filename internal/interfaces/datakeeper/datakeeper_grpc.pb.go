@@ -21,6 +21,12 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	DataKeeper_CreatePasswordPair_FullMethodName = "/datakeeper.DataKeeper/CreatePasswordPair"
 	DataKeeper_RemovePasswordPair_FullMethodName = "/datakeeper.DataKeeper/RemovePasswordPair"
+	DataKeeper_CreateText_FullMethodName         = "/datakeeper.DataKeeper/CreateText"
+	DataKeeper_RemoveText_FullMethodName         = "/datakeeper.DataKeeper/RemoveText"
+	DataKeeper_CreateCard_FullMethodName         = "/datakeeper.DataKeeper/CreateCard"
+	DataKeeper_RemoveCard_FullMethodName         = "/datakeeper.DataKeeper/RemoveCard"
+	DataKeeper_CreateBin_FullMethodName          = "/datakeeper.DataKeeper/CreateBin"
+	DataKeeper_RemoveBin_FullMethodName          = "/datakeeper.DataKeeper/RemoveBin"
 	DataKeeper_GetData_FullMethodName            = "/datakeeper.DataKeeper/GetData"
 )
 
@@ -30,6 +36,12 @@ const (
 type DataKeeperClient interface {
 	CreatePasswordPair(ctx context.Context, in *CreatePasswordPairRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 	RemovePasswordPair(ctx context.Context, in *RemovePasswordPairRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	CreateText(ctx context.Context, in *CreateTextRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	RemoveText(ctx context.Context, in *RemoveTextRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	CreateCard(ctx context.Context, in *CreateCardRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	RemoveCard(ctx context.Context, in *RemoveCardRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	CreateBin(ctx context.Context, in *CreateBinRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	RemoveBin(ctx context.Context, in *RemoveBinRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 	GetData(ctx context.Context, in *GetDataRequest, opts ...grpc.CallOption) (DataKeeper_GetDataClient, error)
 }
 
@@ -53,6 +65,60 @@ func (c *dataKeeperClient) CreatePasswordPair(ctx context.Context, in *CreatePas
 func (c *dataKeeperClient) RemovePasswordPair(ctx context.Context, in *RemovePasswordPairRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
 	out := new(EmptyResponse)
 	err := c.cc.Invoke(ctx, DataKeeper_RemovePasswordPair_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataKeeperClient) CreateText(ctx context.Context, in *CreateTextRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, DataKeeper_CreateText_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataKeeperClient) RemoveText(ctx context.Context, in *RemoveTextRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, DataKeeper_RemoveText_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataKeeperClient) CreateCard(ctx context.Context, in *CreateCardRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, DataKeeper_CreateCard_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataKeeperClient) RemoveCard(ctx context.Context, in *RemoveCardRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, DataKeeper_RemoveCard_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataKeeperClient) CreateBin(ctx context.Context, in *CreateBinRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, DataKeeper_CreateBin_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataKeeperClient) RemoveBin(ctx context.Context, in *RemoveBinRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, DataKeeper_RemoveBin_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +163,12 @@ func (x *dataKeeperGetDataClient) Recv() (*GetDataResponse, error) {
 type DataKeeperServer interface {
 	CreatePasswordPair(context.Context, *CreatePasswordPairRequest) (*EmptyResponse, error)
 	RemovePasswordPair(context.Context, *RemovePasswordPairRequest) (*EmptyResponse, error)
+	CreateText(context.Context, *CreateTextRequest) (*EmptyResponse, error)
+	RemoveText(context.Context, *RemoveTextRequest) (*EmptyResponse, error)
+	CreateCard(context.Context, *CreateCardRequest) (*EmptyResponse, error)
+	RemoveCard(context.Context, *RemoveCardRequest) (*EmptyResponse, error)
+	CreateBin(context.Context, *CreateBinRequest) (*EmptyResponse, error)
+	RemoveBin(context.Context, *RemoveBinRequest) (*EmptyResponse, error)
 	GetData(*GetDataRequest, DataKeeper_GetDataServer) error
 	mustEmbedUnimplementedDataKeeperServer()
 }
@@ -110,6 +182,24 @@ func (UnimplementedDataKeeperServer) CreatePasswordPair(context.Context, *Create
 }
 func (UnimplementedDataKeeperServer) RemovePasswordPair(context.Context, *RemovePasswordPairRequest) (*EmptyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemovePasswordPair not implemented")
+}
+func (UnimplementedDataKeeperServer) CreateText(context.Context, *CreateTextRequest) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateText not implemented")
+}
+func (UnimplementedDataKeeperServer) RemoveText(context.Context, *RemoveTextRequest) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveText not implemented")
+}
+func (UnimplementedDataKeeperServer) CreateCard(context.Context, *CreateCardRequest) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateCard not implemented")
+}
+func (UnimplementedDataKeeperServer) RemoveCard(context.Context, *RemoveCardRequest) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveCard not implemented")
+}
+func (UnimplementedDataKeeperServer) CreateBin(context.Context, *CreateBinRequest) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateBin not implemented")
+}
+func (UnimplementedDataKeeperServer) RemoveBin(context.Context, *RemoveBinRequest) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveBin not implemented")
 }
 func (UnimplementedDataKeeperServer) GetData(*GetDataRequest, DataKeeper_GetDataServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetData not implemented")
@@ -163,6 +253,114 @@ func _DataKeeper_RemovePasswordPair_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DataKeeper_CreateText_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateTextRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataKeeperServer).CreateText(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataKeeper_CreateText_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataKeeperServer).CreateText(ctx, req.(*CreateTextRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataKeeper_RemoveText_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveTextRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataKeeperServer).RemoveText(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataKeeper_RemoveText_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataKeeperServer).RemoveText(ctx, req.(*RemoveTextRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataKeeper_CreateCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateCardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataKeeperServer).CreateCard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataKeeper_CreateCard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataKeeperServer).CreateCard(ctx, req.(*CreateCardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataKeeper_RemoveCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveCardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataKeeperServer).RemoveCard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataKeeper_RemoveCard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataKeeperServer).RemoveCard(ctx, req.(*RemoveCardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataKeeper_CreateBin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateBinRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataKeeperServer).CreateBin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataKeeper_CreateBin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataKeeperServer).CreateBin(ctx, req.(*CreateBinRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataKeeper_RemoveBin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveBinRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataKeeperServer).RemoveBin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataKeeper_RemoveBin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataKeeperServer).RemoveBin(ctx, req.(*RemoveBinRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _DataKeeper_GetData_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(GetDataRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -198,6 +396,30 @@ var DataKeeper_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemovePasswordPair",
 			Handler:    _DataKeeper_RemovePasswordPair_Handler,
+		},
+		{
+			MethodName: "CreateText",
+			Handler:    _DataKeeper_CreateText_Handler,
+		},
+		{
+			MethodName: "RemoveText",
+			Handler:    _DataKeeper_RemoveText_Handler,
+		},
+		{
+			MethodName: "CreateCard",
+			Handler:    _DataKeeper_CreateCard_Handler,
+		},
+		{
+			MethodName: "RemoveCard",
+			Handler:    _DataKeeper_RemoveCard_Handler,
+		},
+		{
+			MethodName: "CreateBin",
+			Handler:    _DataKeeper_CreateBin_Handler,
+		},
+		{
+			MethodName: "RemoveBin",
+			Handler:    _DataKeeper_RemoveBin_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

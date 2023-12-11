@@ -9,11 +9,14 @@ import (
 )
 
 func main() {
+	build()
+	parseConfig()
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	helpers.SetupGracefulShutdown(cancel)
 
-	if clientErr := client.Run(ctx, client.ApplicationConfig{Addr: ":14444"}); clientErr != nil { // TODO move add to app configuration
+	if clientErr := client.Run(ctx, client.ApplicationConfig{Addr: addr}); clientErr != nil {
 		log.Fatalln(clientErr)
 	}
 }

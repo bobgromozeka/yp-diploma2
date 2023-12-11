@@ -3,8 +3,9 @@ package server
 import (
 	"context"
 	"database/sql"
-	"github.com/bobgromozeka/yp-diploma2/internal/server/storage"
 	"log"
+
+	"github.com/bobgromozeka/yp-diploma2/internal/server/storage"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/bobgromozeka/yp-diploma2/pkg/helpers"
 )
 
-func Run() {
+func Run(addr string) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	db, dbErr := sql.Open("sqlite3", "yp-diploma2.db")
@@ -28,7 +29,7 @@ func Run() {
 
 	grpcServer := grpc.NewServer(
 		uStorage, dkStorage, grpc.ServerConfig{
-			Addr: ":14444", // TODO add address configuration from flags
+			Addr: addr, // TODO add address configuration from flags
 		},
 	)
 

@@ -5,5 +5,7 @@ import (
 )
 
 func main() {
-	server.Run()
+	parseConfig()
+
+	server.Run(addr)
 }

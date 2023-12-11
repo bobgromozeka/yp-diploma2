@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 
 	"github.com/bobgromozeka/yp-diploma2/internal/interfaces/datakeeper"
+	"github.com/bobgromozeka/yp-diploma2/pkg/helpers"
 )
 
 type DataType = int
@@ -100,6 +102,16 @@ func (p *DataPage) render() *tview.Pages {
 			"texts", "", 0, func() {
 				p.renderTextsList()
 			},
+		).
+		AddItem(
+			"cards", "", 0, func() {
+				p.renderCardsList()
+			},
+		).
+		AddItem(
+			"bins", "", 0, func() {
+				p.renderBinsList()
+			},
 		)
 
 	actionsNote := tview.NewTextView()
@@ -166,6 +178,8 @@ func (p *DataPage) startFetchingData(ctx context.Context) chan struct{} {
 			} else {
 				p.app.storage.PasswordPairs = mapGRPCPairsToStorage(data.PasswordPairs)
 				p.app.storage.Texts = mapGRPCTextsToStorage(data.Texts)
+				p.app.storage.Cards = mapGRPCCardsToStorage(data.Cards)
+				p.app.storage.Bins = mapGRPCBinsToStorage(data.Bins)
 				p.app.tApp.QueueUpdateDraw(func() {
 					p.rerenderDataBlock()
 					p.clearEntityView()
@@ -216,20 +230,68 @@ func (p *DataPage) renderTextsList() {
 		SetTitle(" Texts ")
 
 	for _, t := range p.app.storage.Texts {
+		id := t.ID
 		text := t.T
+		shortText := text
 		if len(text) > 50 {
-			text = t.T[:50] + "..."
+			shortText = text[:50] + "..."
 		}
 		name := t.Name
 		desc := t.Description
 		list.
-			AddItem(t.Name, text, 0, func() {
-				p.renderTextsView(name, t.T, desc)
+			AddItem(t.Name, shortText, 0, func() {
+				p.renderTextsView(id, name, text, desc)
 			})
 	}
 
 	p.dataList = list
 	p.currentDataType = DataTexts
+	p.gridAddDataBlock(list)
+
+	p.setFocusData()
+}
+
+func (p *DataPage) renderCardsList() {
+	if p.dataList != nil {
+		p.dataGrid.RemoveItem(p.dataList)
+	}
+
+	list := tview.NewList()
+	list.SetBorder(true)
+	list.SetTitle(" Cards ")
+
+	for _, c := range p.app.storage.Cards {
+		card := c
+		list.AddItem(c.Name, "", 0, func() {
+			p.renderCardsView(card.ID, card.Name, card.Number, card.ValidThroughMonth, card.ValidThroughYear, card.CVV, card.Description)
+		})
+	}
+
+	p.dataList = list
+	p.currentDataType = DataCards
+	p.gridAddDataBlock(list)
+
+	p.setFocusData()
+}
+
+func (p *DataPage) renderBinsList() {
+	if p.dataList != nil {
+		p.dataGrid.RemoveItem(p.dataList)
+	}
+
+	list := tview.NewList()
+	list.SetBorder(true)
+	list.SetTitle(" Bins ")
+
+	for _, b := range p.app.storage.Bins {
+		bin := b
+		list.AddItem(b.Name, "", 0, func() {
+			p.renderBinsView(bin.ID, bin.Name, bin.Data, bin.Description)
+		})
+	}
+
+	p.dataList = list
+	p.currentDataType = DataBin
 	p.gridAddDataBlock(list)
 
 	p.setFocusData()
@@ -245,6 +307,10 @@ func (p *DataPage) rerenderDataBlock() {
 		p.renderPasswordPairsList()
 	case DataTexts:
 		p.renderTextsList()
+	case DataCards:
+		p.renderCardsList()
+	case DataBin:
+		p.renderBinsList()
 	}
 }
 
@@ -361,13 +427,13 @@ func (p *DataPage) renderPasswordPairsView(id int, login, password string, descr
 	p.setFocusView()
 }
 
-func (p *DataPage) renderTextsView(name, text string, description *string) {
+func (p *DataPage) renderTextsView(id int, name, text string, description *string) {
 	g := tview.NewGrid()
 	g.SetBorder(true)
 	g.SetTitle(" Text ")
 
 	nameLabel := tview.NewTextView()
-	nameLabel.SetText("Login")
+	nameLabel.SetText("Name")
 
 	nameContent := tview.NewTextView()
 	nameContent.SetText(name)
@@ -393,11 +459,34 @@ func (p *DataPage) renderTextsView(name, text string, description *string) {
 		AddItem(textLabel, 1, 0, 1, 1, 0, 0, false).
 		AddItem(textContent, 1, 1, 1, 3, 0, 0, true)
 
+	deleteButton := tview.NewButton("Remove")
+	deleteButton.
+		SetSelectedFunc(func() {
+			confirmationModal := tview.NewModal()
+			confirmationModal.
+				SetText(fmt.Sprintf("Confirm delete of text with name %s ?", name)).
+				AddButtons([]string{"Yes", "No"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					if buttonLabel == "Yes" {
+						_, err := p.app.dClient.RemoveText(p.app.ctx, &datakeeper.RemoveTextRequest{
+							ID: int32(id),
+						})
+						if err != nil {
+							p.attachError("Removing entity error. Contact me in Telegram @xxSerk d^_^b: " + err.Error())
+						}
+
+					}
+					p.removeConfirmationModal()
+					p.setFocusView()
+				})
+			p.addConfirmationModal(confirmationModal)
+		})
+
+	descriptionContent := tview.NewTextView()
 	if description != nil {
 		descriptionLabel := tview.NewTextView()
 		descriptionLabel.SetText("Description (scrollable)")
 
-		descriptionContent := tview.NewTextView()
 		descriptionContent.SetText(*description)
 		descriptionContent.SetBackgroundColor(tcell.ColorBlue)
 		descriptionContent.SetScrollable(true)
@@ -421,7 +510,7 @@ func (p *DataPage) renderTextsView(name, text string, description *string) {
 		})
 		descriptionContent.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			if event.Key() == tcell.KeyTab {
-				p.app.tApp.SetFocus(textContent)
+				p.app.tApp.SetFocus(deleteButton)
 				return nil
 			}
 
@@ -435,7 +524,270 @@ func (p *DataPage) renderTextsView(name, text string, description *string) {
 		})
 	}
 
-	g.SetRows(1, 15, 15, 0)
+	var focusButton bool
+	if description == nil {
+		focusButton = true
+	} else {
+		deleteButton.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			if event.Key() == tcell.KeyTab {
+				p.app.tApp.SetFocus(textContent)
+				return nil
+			}
+
+			return event
+		})
+	}
+
+	g.AddItem(deleteButton, 3, 1, 1, 1, 0, 0, focusButton)
+
+	g.SetRows(1, 15, 15, 1, 0)
+	g.SetGap(1, 0)
+
+	p.dataGrid.RemoveItem(p.entityView)
+	p.entityView = g
+	p.dataGrid.AddItem(g, 0, 4, 12, 2, 0, 0, false)
+	p.setFocusView()
+}
+
+func (p *DataPage) renderCardsView(id int, name, number string, validThroughMonth, validThroughYear, cvv int, description *string) {
+	g := tview.NewGrid()
+	g.SetBorder(true)
+	g.SetTitle(" Text ")
+
+	nameLabel := tview.NewTextView()
+	nameLabel.SetText("Name")
+
+	nameContent := tview.NewTextView()
+	nameContent.SetText(name)
+	nameContent.SetBackgroundColor(tcell.ColorBlue)
+
+	numberLabel := tview.NewTextView()
+	numberLabel.SetText("Number")
+
+	numberContent := tview.NewTextView()
+	numberContent.SetText(number)
+	numberContent.SetBackgroundColor(tcell.ColorBlue)
+
+	vtmLabel := tview.NewTextView()
+	vtmLabel.SetText("     M")
+
+	vtmContent := tview.NewTextView()
+	vtmContent.SetText(helpers.PadLeft(strconv.Itoa(validThroughMonth), '0', 2))
+	vtmContent.SetBackgroundColor(tcell.ColorBlue)
+
+	vtyLabel := tview.NewTextView()
+	vtyLabel.SetText("     Y")
+
+	vtyContent := tview.NewTextView()
+	vtyContent.SetText(strconv.Itoa(validThroughYear))
+	vtyContent.SetBackgroundColor(tcell.ColorBlue)
+
+	g.
+		AddItem(nameLabel, 0, 0, 1, 1, 0, 0, false).
+		AddItem(nameContent, 0, 1, 1, 3, 0, 0, false).
+		AddItem(numberLabel, 1, 0, 1, 1, 0, 0, false).
+		AddItem(numberContent, 1, 1, 1, 3, 0, 0, false).
+		AddItem(vtmLabel, 2, 0, 1, 1, 0, 0, false).
+		AddItem(vtmContent, 2, 1, 1, 1, 0, 0, false).
+		AddItem(vtyLabel, 2, 2, 1, 1, 0, 0, false).
+		AddItem(vtyContent, 2, 3, 1, 1, 0, 0, false)
+
+	deleteButton := tview.NewButton("Remove")
+	deleteButton.
+		SetSelectedFunc(func() {
+			confirmationModal := tview.NewModal()
+			confirmationModal.
+				SetText(fmt.Sprintf("Confirm delete of card with name %s ?", name)).
+				AddButtons([]string{"Yes", "No"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					if buttonLabel == "Yes" {
+						_, err := p.app.dClient.RemoveCard(p.app.ctx, &datakeeper.RemoveCardRequest{
+							ID: int32(id),
+						})
+						if err != nil {
+							p.attachError("Removing entity error. Contact me in Telegram @xxSerk d^_^b: " + err.Error())
+						}
+
+					}
+					p.removeConfirmationModal()
+					p.setFocusView()
+				})
+			p.addConfirmationModal(confirmationModal)
+		})
+
+	descriptionContent := tview.NewTextView()
+	if description != nil {
+		descriptionLabel := tview.NewTextView()
+		descriptionLabel.SetText("Description (scrollable)")
+
+		descriptionContent.SetText(*description)
+		descriptionContent.SetBackgroundColor(tcell.ColorBlue)
+		descriptionContent.SetScrollable(true)
+		descriptionContent.SetFocusFunc(func() {
+			descriptionLabel.SetTextColor(tcell.ColorGreen)
+		})
+		descriptionContent.SetBlurFunc(func() {
+			descriptionLabel.SetTextColor(tcell.ColorWhite)
+		})
+
+		g.AddItem(descriptionLabel, 3, 0, 1, 1, 0, 0, false)
+		g.AddItem(descriptionContent, 3, 1, 1, 3, 0, 0, true)
+
+		descriptionContent.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			if event.Key() == tcell.KeyTab {
+				p.app.tApp.SetFocus(deleteButton)
+				return nil
+			}
+
+			return event
+		})
+		descriptionContent.SetFocusFunc(func() {
+			descriptionLabel.SetTextColor(tcell.ColorGreen)
+		})
+		descriptionContent.SetBlurFunc(func() {
+			descriptionLabel.SetTextColor(tcell.ColorWhite)
+		})
+	}
+
+	var focusButton bool
+	if description == nil {
+		focusButton = true
+	} else {
+		deleteButton.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			if event.Key() == tcell.KeyTab {
+				p.app.tApp.SetFocus(descriptionContent)
+				return nil
+			}
+
+			return event
+		})
+	}
+
+	g.AddItem(deleteButton, 4, 1, 1, 1, 0, 0, focusButton)
+
+	g.SetRows(1, 1, 1, 15, 1, 0)
+	g.SetGap(1, 0)
+
+	p.dataGrid.RemoveItem(p.entityView)
+	p.entityView = g
+	p.dataGrid.AddItem(g, 0, 4, 12, 2, 0, 0, false)
+	p.setFocusView()
+}
+
+func (p *DataPage) renderBinsView(id int, name string, data []byte, description *string) {
+	g := tview.NewGrid()
+	g.SetBorder(true)
+	g.SetTitle(" Text ")
+
+	nameLabel := tview.NewTextView()
+	nameLabel.SetText("Name")
+
+	nameContent := tview.NewTextView()
+	nameContent.SetText(name)
+	nameContent.SetBackgroundColor(tcell.ColorBlue)
+
+	dataLabel := tview.NewTextView()
+	dataLabel.SetText("Data (scrollable)")
+
+	dataContent := tview.NewTextView()
+	dataContent.SetText(string(data))
+	dataContent.SetBackgroundColor(tcell.ColorBlue)
+	dataContent.SetScrollable(true)
+	dataContent.SetFocusFunc(func() {
+		dataLabel.SetTextColor(tcell.ColorGreen)
+	})
+	dataContent.SetBlurFunc(func() {
+		dataLabel.SetTextColor(tcell.ColorWhite)
+	})
+
+	g.
+		AddItem(nameLabel, 0, 0, 1, 1, 0, 0, false).
+		AddItem(nameContent, 0, 1, 1, 3, 0, 0, false).
+		AddItem(dataLabel, 1, 0, 1, 1, 0, 0, false).
+		AddItem(dataContent, 1, 1, 1, 3, 0, 0, true)
+
+	deleteButton := tview.NewButton("Remove")
+	deleteButton.
+		SetSelectedFunc(func() {
+			confirmationModal := tview.NewModal()
+			confirmationModal.
+				SetText(fmt.Sprintf("Confirm delete of bin with name %s ?", name)).
+				AddButtons([]string{"Yes", "No"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					if buttonLabel == "Yes" {
+						_, err := p.app.dClient.RemoveBin(p.app.ctx, &datakeeper.RemoveBinRequest{
+							ID: int32(id),
+						})
+						if err != nil {
+							p.attachError("Removing entity error. Contact me in Telegram @xxSerk d^_^b: " + err.Error())
+						}
+
+					}
+					p.removeConfirmationModal()
+					p.setFocusView()
+				})
+			p.addConfirmationModal(confirmationModal)
+		})
+
+	descriptionContent := tview.NewTextView()
+	if description != nil {
+		descriptionLabel := tview.NewTextView()
+		descriptionLabel.SetText("Description (scrollable)")
+
+		descriptionContent.SetText(*description)
+		descriptionContent.SetBackgroundColor(tcell.ColorBlue)
+		descriptionContent.SetScrollable(true)
+		descriptionContent.SetFocusFunc(func() {
+			descriptionLabel.SetTextColor(tcell.ColorGreen)
+		})
+		descriptionContent.SetBlurFunc(func() {
+			descriptionLabel.SetTextColor(tcell.ColorWhite)
+		})
+
+		g.AddItem(descriptionLabel, 2, 0, 1, 1, 0, 0, false)
+		g.AddItem(descriptionContent, 2, 1, 1, 3, 0, 0, false)
+
+		dataContent.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			if event.Key() == tcell.KeyTab {
+				p.app.tApp.SetFocus(descriptionContent)
+				return nil
+			}
+
+			return event
+		})
+		descriptionContent.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			if event.Key() == tcell.KeyTab {
+				p.app.tApp.SetFocus(deleteButton)
+				return nil
+			}
+
+			return event
+		})
+		descriptionContent.SetFocusFunc(func() {
+			descriptionLabel.SetTextColor(tcell.ColorGreen)
+		})
+		descriptionContent.SetBlurFunc(func() {
+			descriptionLabel.SetTextColor(tcell.ColorWhite)
+		})
+	}
+
+	var focusButton bool
+	if description == nil {
+		focusButton = true
+	} else {
+		deleteButton.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			if event.Key() == tcell.KeyTab {
+				p.app.tApp.SetFocus(dataContent)
+				return nil
+			}
+
+			return event
+		})
+	}
+
+	g.AddItem(deleteButton, 3, 1, 1, 1, 0, 0, focusButton)
+
+	g.SetRows(1, 15, 15, 1, 0)
 	g.SetGap(1, 0)
 
 	p.dataGrid.RemoveItem(p.entityView)

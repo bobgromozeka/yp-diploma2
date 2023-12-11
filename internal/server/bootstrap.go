@@ -9,6 +9,8 @@ func bootstrap(db *sql.DB) {
 	createUserTable(db)
 	createPasswordsTable(db)
 	createTextsTable(db)
+	createCardsTable(db)
+	createBinTable(db)
 }
 
 func createUserTable(db *sql.DB) {
@@ -50,5 +52,38 @@ func createTextsTable(db *sql.DB) {
 		)`,
 	); passwordsTableErr != nil {
 		log.Fatalln(passwordsTableErr)
+	}
+}
+
+func createCardsTable(db *sql.DB) {
+	if _, cardsTableErr := db.Exec(
+		`create table if not exists cards(
+    		id integer primary key autoincrement,
+    		user_id integer not null,
+    		name text not null,
+    		number text not null,
+    		valid_through_month integer not null,
+    		valid_through_year integer not null,
+    		cvv integer not null,
+    		description text,
+            foreign key(user_id) references users(id)
+		)`,
+	); cardsTableErr != nil {
+		log.Fatalln(cardsTableErr)
+	}
+}
+
+func createBinTable(db *sql.DB) {
+	if _, createBinTableErr := db.Exec(
+		`create table if not exists bins(
+    		id integer primary key autoincrement,
+    		user_id integer not null,
+    		name text not null,
+    		data blob not null,
+    		description text,
+    		foreign key(user_id) references users(id)
+		)`,
+	); createBinTableErr != nil {
+		log.Fatalln(createBinTableErr)
 	}
 }

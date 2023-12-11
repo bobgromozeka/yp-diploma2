@@ -99,6 +99,122 @@ func (s *DataKeeperService) RemovePasswordPair(ctx context.Context, req *datakee
 	return &datakeeper.EmptyResponse{}, nil
 }
 
+func (s *DataKeeperService) CreateText(ctx context.Context, req *datakeeper.CreateTextRequest) (*datakeeper.EmptyResponse, error) {
+	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	if !ok {
+		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		return nil, ErrInternalServerError
+	}
+
+	err := s.dks.CreateText(ctx, int(uID), req.Name, req.Text, req.Description)
+	if err != nil {
+		log.Default().Println("Error during creating text: ", err)
+		return nil, ErrInternalServerError
+	}
+
+	s.notifyUserSubs(int(uID))
+
+	return &datakeeper.EmptyResponse{}, nil
+}
+
+func (s *DataKeeperService) RemoveText(ctx context.Context, req *datakeeper.RemoveTextRequest) (*datakeeper.EmptyResponse, error) {
+	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	if !ok {
+		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		return nil, ErrInternalServerError
+	}
+
+	err := s.dks.RemoveText(ctx, int(uID), int(req.ID))
+	if err != nil {
+		log.Default().Println("Error during removing text: ", err)
+		return nil, ErrInternalServerError
+	}
+
+	s.notifyUserSubs(int(uID))
+
+	return &datakeeper.EmptyResponse{}, nil
+}
+
+func (s *DataKeeperService) CreateCard(ctx context.Context, req *datakeeper.CreateCardRequest) (*datakeeper.EmptyResponse, error) {
+	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	if !ok {
+		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		return nil, ErrInternalServerError
+	}
+
+	err := s.dks.CreateCard(ctx, storage.CreateCardParams{
+		UserID:            int(uID),
+		Name:              req.Name,
+		Number:            req.Number,
+		ValidThroughMonth: int(req.ValidThroughMonth),
+		ValidThroughYear:  int(req.ValidThroughYear),
+		Cvv:               int(req.Cvv),
+		Description:       req.Description,
+	})
+	if err != nil {
+		log.Default().Println("Error during creating card: ", err)
+		return nil, ErrInternalServerError
+	}
+
+	s.notifyUserSubs(int(uID))
+
+	return &datakeeper.EmptyResponse{}, nil
+}
+
+func (s *DataKeeperService) RemoveCard(ctx context.Context, req *datakeeper.RemoveCardRequest) (*datakeeper.EmptyResponse, error) {
+	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	if !ok {
+		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		return nil, ErrInternalServerError
+	}
+
+	err := s.dks.RemoveCard(ctx, int(uID), int(req.ID))
+	if err != nil {
+		log.Default().Println("Error during removing card: ", err)
+		return nil, ErrInternalServerError
+	}
+
+	s.notifyUserSubs(int(uID))
+
+	return &datakeeper.EmptyResponse{}, nil
+}
+
+func (s *DataKeeperService) CreateBin(ctx context.Context, req *datakeeper.CreateBinRequest) (*datakeeper.EmptyResponse, error) {
+	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	if !ok {
+		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		return nil, ErrInternalServerError
+	}
+
+	err := s.dks.CreateBin(ctx, int(uID), req.Name, req.Data, req.Description)
+	if err != nil {
+		log.Default().Println("Error during creating bin: ", err)
+		return nil, ErrInternalServerError
+	}
+
+	s.notifyUserSubs(int(uID))
+
+	return &datakeeper.EmptyResponse{}, nil
+}
+
+func (s *DataKeeperService) RemoveBin(ctx context.Context, req *datakeeper.RemoveBinRequest) (*datakeeper.EmptyResponse, error) {
+	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	if !ok {
+		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		return nil, ErrInternalServerError
+	}
+
+	err := s.dks.RemoveBin(ctx, int(uID), int(req.ID))
+	if err != nil {
+		log.Default().Println("Error during removing bin: ", err)
+		return nil, ErrInternalServerError
+	}
+
+	s.notifyUserSubs(int(uID))
+
+	return &datakeeper.EmptyResponse{}, nil
+}
+
 func mapStoragePairsToGRPC(spp []storage.PasswordPair) []*datakeeper.PasswordPair {
 	gpp := make([]*datakeeper.PasswordPair, len(spp))
 
@@ -127,6 +243,39 @@ func mapStorageTextsToGRPC(st []storage.Text) []*datakeeper.Text {
 	}
 
 	return gt
+}
+
+func mapStorageCardsToGRPC(sc []storage.Card) []*datakeeper.Card {
+	gc := make([]*datakeeper.Card, len(sc))
+
+	for i, c := range sc {
+		gc[i] = &datakeeper.Card{
+			ID:                int32(c.ID),
+			Name:              c.Name,
+			Number:            c.Number,
+			ValidThroughMonth: int32(c.ValidThroughMonth),
+			ValidThroughYear:  int32(c.ValidThroughYear),
+			Cvv:               int32(c.CVV),
+			Description:       c.Description,
+		}
+	}
+
+	return gc
+}
+
+func mapStorageBinsToGRPC(sb []storage.Bin) []*datakeeper.Bin {
+	gb := make([]*datakeeper.Bin, len(sb))
+
+	for i, b := range sb {
+		gb[i] = &datakeeper.Bin{
+			ID:          int32(b.ID),
+			Name:        b.Name,
+			Data:        b.Data,
+			Description: b.Description,
+		}
+	}
+
+	return gb
 }
 
 func (s *DataKeeperService) subscribeForUpdates(userID int, stream datakeeper.DataKeeper_GetDataServer) (error, chan error, string) {
@@ -213,6 +362,8 @@ func (s *DataKeeperService) unsubscribeFromUpdates(userID int, UUID string) {
 func (s *DataKeeperService) getUserData(ctx context.Context, userID int) (*datakeeper.GetDataResponse, []error) {
 	var passwordPairsResult []*datakeeper.PasswordPair
 	var textResults []*datakeeper.Text
+	var cardResults []*datakeeper.Card
+	var binResults []*datakeeper.Bin
 
 	errs := goroutines.WaitForAll(
 		func() error {
@@ -235,6 +386,26 @@ func (s *DataKeeperService) getUserData(ctx context.Context, userID int) (*datak
 
 			return nil
 		},
+		func() error {
+			cards, err := s.dks.GetAllCards(ctx, userID)
+			if err != nil {
+				return err
+			}
+
+			cardResults = mapStorageCardsToGRPC(cards)
+
+			return nil
+		},
+		func() error {
+			bins, err := s.dks.GetAllBins(ctx, userID)
+			if err != nil {
+				return err
+			}
+
+			binResults = mapStorageBinsToGRPC(bins)
+
+			return nil
+		},
 	)
 
 	if len(errs) > 0 {
@@ -244,6 +415,8 @@ func (s *DataKeeperService) getUserData(ctx context.Context, userID int) (*datak
 	return &datakeeper.GetDataResponse{
 		PasswordPairs: passwordPairsResult,
 		Texts:         textResults,
+		Cards:         cardResults,
+		Bins:          binResults,
 	}, nil
 }
 
