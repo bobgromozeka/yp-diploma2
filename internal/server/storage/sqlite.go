@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/mattn/go-sqlite3"
@@ -186,7 +185,6 @@ func (s *SQLiteDataKeeperStorage) RemoveCard(ctx context.Context, userID int, ID
 }
 
 func (s *SQLiteDataKeeperStorage) CreateBin(ctx context.Context, userID int, name string, data []byte, description *string) error {
-	fmt.Println(data)
 	_, err := s.db.ExecContext(ctx, "insert into bins (user_id, name, data, description) values ($1, $2, $3, $4)",
 		userID, name, data, description)
 

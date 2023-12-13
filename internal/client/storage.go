@@ -5,6 +5,7 @@ import (
 	"github.com/bobgromozeka/yp-diploma2/internal/server/storage"
 )
 
+// Storage client storage structure
 type Storage struct {
 	PasswordPairs []storage.PasswordPair
 	Texts         []storage.Text
@@ -12,6 +13,7 @@ type Storage struct {
 	Bins          []storage.Bin
 }
 
+// mapGRPCPairsToStorage maps password pairs grpc type to storage type
 func mapGRPCPairsToStorage(gpp []*datakeeper.PasswordPair) []storage.PasswordPair {
 	var spp []storage.PasswordPair
 
@@ -33,6 +35,7 @@ func mapGRPCPairsToStorage(gpp []*datakeeper.PasswordPair) []storage.PasswordPai
 	return spp
 }
 
+// mapGRPCTextsToStorage maps texts grpc type to storage type
 func mapGRPCTextsToStorage(gt []*datakeeper.Text) []storage.Text {
 	var st []storage.Text
 
@@ -54,6 +57,7 @@ func mapGRPCTextsToStorage(gt []*datakeeper.Text) []storage.Text {
 	return st
 }
 
+// mapGRPCCardsToStorage maps cards grpc type to storage type
 func mapGRPCCardsToStorage(gc []*datakeeper.Card) []storage.Card {
 	var sc []storage.Card
 
@@ -78,6 +82,7 @@ func mapGRPCCardsToStorage(gc []*datakeeper.Card) []storage.Card {
 	return sc
 }
 
+// mapGRPCBinsToStorage maps binaries grpc type to storage type
 func mapGRPCBinsToStorage(gb []*datakeeper.Bin) []storage.Bin {
 	var sb []storage.Bin
 

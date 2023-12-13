@@ -11,16 +11,19 @@ import (
 	"github.com/bobgromozeka/yp-diploma2/internal/interfaces/user"
 )
 
+// RegisterPage page with registration form
 type RegisterPage struct {
 	app *Application
 }
 
+// NewRegisterPage return pointer of RegisterPage
 func NewRegisterPage(app *Application) *RegisterPage {
 	return &RegisterPage{
 		app: app,
 	}
 }
 
+// Render creates register page and returns tview component
 func (p *RegisterPage) Render() *tview.Pages {
 	page := pages("Register")
 

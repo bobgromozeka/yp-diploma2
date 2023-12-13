@@ -5,27 +5,29 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/bobgromozeka/yp-diploma2/internal/interfaces/datakeeper"
-	"github.com/bobgromozeka/yp-diploma2/internal/server/grpc/interceptors"
-	"github.com/bobgromozeka/yp-diploma2/internal/server/storage"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
+	"github.com/bobgromozeka/yp-diploma2/internal/interfaces/datakeeper"
 	"github.com/bobgromozeka/yp-diploma2/internal/interfaces/user"
+	"github.com/bobgromozeka/yp-diploma2/internal/server/grpc/interceptors"
 	"github.com/bobgromozeka/yp-diploma2/internal/server/grpc/services"
+	"github.com/bobgromozeka/yp-diploma2/internal/server/storage"
 )
 
+// ServerConfig server configuration params
 type ServerConfig struct {
 	Addr string
 }
 
+// Server struct with app dependencies
 type Server struct {
 	uStorage  storage.UserStorage
 	dkStorage storage.DataKeeperStorage
 	conf      ServerConfig
 }
 
+// NewServer returns pointer to new server struct
 func NewServer(us storage.UserStorage, dks storage.DataKeeperStorage, c ServerConfig) *Server {
 	return &Server{
 		uStorage:  us,
@@ -34,6 +36,7 @@ func NewServer(us storage.UserStorage, dks storage.DataKeeperStorage, c ServerCo
 	}
 }
 
+// Start starts grpc server with all needed interceptors and options from config
 func (s *Server) Start(ctx context.Context) error {
 	lis, err := net.Listen("tcp", s.conf.Addr)
 	if err != nil {

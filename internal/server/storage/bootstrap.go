@@ -1,11 +1,12 @@
-package server
+package storage
 
 import (
 	"database/sql"
 	"log"
 )
 
-func bootstrap(db *sql.DB) {
+// Bootstrap creates database tables if they are not created yet
+func Bootstrap(db *sql.DB) {
 	createUserTable(db)
 	createPasswordsTable(db)
 	createTextsTable(db)

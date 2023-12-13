@@ -10,16 +10,19 @@ import (
 	"github.com/bobgromozeka/yp-diploma2/internal/interfaces/datakeeper"
 )
 
+// SelectCreationPage page with list of new entities
 type SelectCreationPage struct {
 	app *Application
 }
 
+// NewSelectCreationPage returns pointer to SelectCreationPage
 func NewSelectCreationPage(app *Application) *SelectCreationPage {
 	return &SelectCreationPage{
 		app: app,
 	}
 }
 
+// Render adds all needed items to page and returns tview component
 func (p *SelectCreationPage) Render() *tview.Pages {
 	page := pages("create selection")
 
@@ -44,16 +47,19 @@ func (p *SelectCreationPage) Render() *tview.Pages {
 	return page
 }
 
+// CreatePasswordPairPage page with form to create password pair
 type CreatePasswordPairPage struct {
 	app *Application
 }
 
+// NewCreatePasswordPairPage returns pointer to CreatePasswordPairPage
 func NewCreatePasswordPairPage(app *Application) *CreatePasswordPairPage {
 	return &CreatePasswordPairPage{
 		app: app,
 	}
 }
 
+// Render creates password pair page and returns tview component
 func (p *CreatePasswordPairPage) Render() *tview.Pages {
 	page := pages("create password pair")
 
@@ -118,16 +124,19 @@ func (p *CreatePasswordPairPage) Render() *tview.Pages {
 	return page
 }
 
+// CreateTextPage page with form to create text
 type CreateTextPage struct {
 	app *Application
 }
 
+// NewCreateTextPage returns pointer to CreateTextPage
 func NewCreateTextPage(app *Application) *CreateTextPage {
 	return &CreateTextPage{
 		app: app,
 	}
 }
 
+// Render creates text page and return tview component
 func (p *CreateTextPage) Render() *tview.Pages {
 	page := pages("create text")
 
@@ -192,16 +201,19 @@ func (p *CreateTextPage) Render() *tview.Pages {
 	return page
 }
 
+// CreateCardPage page with form to create new card
 type CreateCardPage struct {
 	app *Application
 }
 
+// NewCreateCardPage return pointer to CreateCardPage
 func NewCreateCardPage(app *Application) *CreateCardPage {
 	return &CreateCardPage{
 		app: app,
 	}
 }
 
+// Render creates card page and return tview component
 func (p *CreateCardPage) Render() *tview.Pages {
 	page := pages("create card")
 
@@ -325,16 +337,19 @@ func (p *CreateCardPage) Render() *tview.Pages {
 	return page
 }
 
+// CreateBinPage page with form to create entry with binary data
 type CreateBinPage struct {
 	app *Application
 }
 
+// NewCreateBinPage returns pointer to CreateBinPage
 func NewCreateBinPage(app *Application) *CreateBinPage {
 	return &CreateBinPage{
 		app: app,
 	}
 }
 
+// Render creates new bin page and returns tview component
 func (p *CreateBinPage) Render() *tview.Pages {
 	page := pages("create bin")
 

@@ -14,95 +14,112 @@ import (
 	"github.com/bobgromozeka/yp-diploma2/pkg/helpers/goroutines"
 )
 
+type userID = int
+
 type subscription struct {
-	stream  datakeeper.DataKeeper_GetDataServer
+	// stream server stream subscription
+	stream datakeeper.DataKeeper_GetDataServer
+
+	// errChan error channel associated with stream
 	errChan chan error
 }
 
+// userSubscription contains all user connections (to sync data between different client of the same user)
 type userSubscription struct {
-	notifyChan    chan struct{}
-	subs          map[string]subscription
-	lastData      *datakeeper.GetDataResponse
+	// notifyChan channel to notify about updated data for one user
+	notifyChan chan struct{}
+
+	// subs list of different client connection of the same user
+	subs map[string]subscription
+
+	// lastData user data that will be sent to all connections
+	lastData *datakeeper.GetDataResponse
+
+	// cancelUserSub ctx cancel func associated with user
 	cancelUserSub context.CancelFunc
 }
 
+// DataKeeperService implementation of gRPC data keeper service
 type DataKeeperService struct {
 	datakeeper.UnimplementedDataKeeperServer
 	dks                  storage.DataKeeperStorage
-	getDataSubscriptions map[int]userSubscription
+	getDataSubscriptions map[userID]userSubscription
 	subscriptionsMx      sync.RWMutex
 }
 
 func NewDataKeeperService(dks storage.DataKeeperStorage) *DataKeeperService {
 	return &DataKeeperService{
 		dks:                  dks,
-		getDataSubscriptions: map[int]userSubscription{},
+		getDataSubscriptions: map[userID]userSubscription{},
 		subscriptionsMx:      sync.RWMutex{},
 	}
 }
 
 func (s *DataKeeperService) CreatePasswordPair(ctx context.Context, req *datakeeper.CreatePasswordPairRequest) (*datakeeper.EmptyResponse, error) {
-	userID, ok := ctx.Value(interceptors.UserID).(float64)
+	userID, ok := ctx.Value(interceptors.UserID).(int)
 	if !ok {
-		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		fmt.Printf("No user id in context or wrong type: %t\n", ctx.Value(interceptors.UserID))
 		return nil, ErrInternalServerError
 	}
 
-	err := s.dks.CreatePasswordPair(ctx, int(userID), req.Login, req.Password, req.Description)
+	err := s.dks.CreatePasswordPair(ctx, userID, req.Login, req.Password, req.Description)
 	if err != nil {
 		fmt.Println("Error during creating password pair: ", err)
 		return nil, ErrInternalServerError
 	}
 
-	s.notifyUserSubs(int(userID))
+	s.notifyUserSubs(userID)
 
 	return &datakeeper.EmptyResponse{}, nil
 }
 
+// GetData
+// User id is added to subscriptions map and last data for this user immediately is sent to him.
+// Connection remains open and updated data is sent when notified
 func (s *DataKeeperService) GetData(req *datakeeper.GetDataRequest, serv datakeeper.DataKeeper_GetDataServer) error {
-	uID, ok := serv.Context().Value(interceptors.UserID).(float64)
+	uID, ok := serv.Context().Value(interceptors.UserID).(int)
 	if !ok {
-		fmt.Printf("No user id in context or wrong type: %t", serv.Context().Value(interceptors.UserID))
+		fmt.Printf("No user id in context or wrong type: %t\n", serv.Context().Value(interceptors.UserID))
 		return ErrInternalServerError
 	}
 
-	subErr, errChan, subUUID := s.subscribeForUpdates(int(uID), serv)
+	subErr, errChan, subUUID := s.subscribeForUpdates(uID, serv)
 	if subErr != nil {
 		return subErr
 	}
 
 	select {
 	case <-serv.Context().Done():
-		s.unsubscribeFromUpdates(int(uID), subUUID)
+		s.unsubscribeFromUpdates(uID, subUUID)
 		return nil
 	case err := <-errChan:
-		s.unsubscribeFromUpdates(int(uID), subUUID)
+		s.unsubscribeFromUpdates(uID, subUUID)
 		return err
 	}
 }
 
 func (s *DataKeeperService) RemovePasswordPair(ctx context.Context, req *datakeeper.RemovePasswordPairRequest) (*datakeeper.EmptyResponse, error) {
-	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	uID, ok := ctx.Value(interceptors.UserID).(int)
 	if !ok {
-		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		fmt.Printf("No user id in context or wrong type: %t\n", ctx.Value(interceptors.UserID))
 		return nil, ErrInternalServerError
 	}
 
-	err := s.dks.RemovePasswordPair(ctx, int(uID), int(req.ID))
+	err := s.dks.RemovePasswordPair(ctx, uID, int(req.ID))
 	if err != nil {
 		log.Default().Println("Error during removing password pair: ", err)
 		return nil, ErrInternalServerError
 	}
 
-	s.notifyUserSubs(int(uID))
+	s.notifyUserSubs(uID)
 
 	return &datakeeper.EmptyResponse{}, nil
 }
 
 func (s *DataKeeperService) CreateText(ctx context.Context, req *datakeeper.CreateTextRequest) (*datakeeper.EmptyResponse, error) {
-	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	uID, ok := ctx.Value(interceptors.UserID).(int)
 	if !ok {
-		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		fmt.Printf("No user id in context or wrong type: %t\n", ctx.Value(interceptors.UserID))
 		return nil, ErrInternalServerError
 	}
 
@@ -118,9 +135,9 @@ func (s *DataKeeperService) CreateText(ctx context.Context, req *datakeeper.Crea
 }
 
 func (s *DataKeeperService) RemoveText(ctx context.Context, req *datakeeper.RemoveTextRequest) (*datakeeper.EmptyResponse, error) {
-	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	uID, ok := ctx.Value(interceptors.UserID).(int)
 	if !ok {
-		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		fmt.Printf("No user id in context or wrong type: %t\n", ctx.Value(interceptors.UserID))
 		return nil, ErrInternalServerError
 	}
 
@@ -136,9 +153,9 @@ func (s *DataKeeperService) RemoveText(ctx context.Context, req *datakeeper.Remo
 }
 
 func (s *DataKeeperService) CreateCard(ctx context.Context, req *datakeeper.CreateCardRequest) (*datakeeper.EmptyResponse, error) {
-	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	uID, ok := ctx.Value(interceptors.UserID).(int)
 	if !ok {
-		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		fmt.Printf("No user id in context or wrong type: %t\n", ctx.Value(interceptors.UserID))
 		return nil, ErrInternalServerError
 	}
 
@@ -162,9 +179,9 @@ func (s *DataKeeperService) CreateCard(ctx context.Context, req *datakeeper.Crea
 }
 
 func (s *DataKeeperService) RemoveCard(ctx context.Context, req *datakeeper.RemoveCardRequest) (*datakeeper.EmptyResponse, error) {
-	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	uID, ok := ctx.Value(interceptors.UserID).(int)
 	if !ok {
-		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		fmt.Printf("No user id in context or wrong type: %t\n", ctx.Value(interceptors.UserID))
 		return nil, ErrInternalServerError
 	}
 
@@ -180,9 +197,9 @@ func (s *DataKeeperService) RemoveCard(ctx context.Context, req *datakeeper.Remo
 }
 
 func (s *DataKeeperService) CreateBin(ctx context.Context, req *datakeeper.CreateBinRequest) (*datakeeper.EmptyResponse, error) {
-	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	uID, ok := ctx.Value(interceptors.UserID).(int)
 	if !ok {
-		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		fmt.Printf("No user id in context or wrong type: %t\n", ctx.Value(interceptors.UserID))
 		return nil, ErrInternalServerError
 	}
 
@@ -198,9 +215,9 @@ func (s *DataKeeperService) CreateBin(ctx context.Context, req *datakeeper.Creat
 }
 
 func (s *DataKeeperService) RemoveBin(ctx context.Context, req *datakeeper.RemoveBinRequest) (*datakeeper.EmptyResponse, error) {
-	uID, ok := ctx.Value(interceptors.UserID).(float64)
+	uID, ok := ctx.Value(interceptors.UserID).(int)
 	if !ok {
-		fmt.Printf("No user id in context or wrong type: %t", ctx.Value(interceptors.UserID))
+		fmt.Printf("No user id in context or wrong type: %t\n", ctx.Value(interceptors.UserID))
 		return nil, ErrInternalServerError
 	}
 
@@ -278,6 +295,11 @@ func mapStorageBinsToGRPC(sb []storage.Bin) []*datakeeper.Bin {
 	return gb
 }
 
+// subscribeForUpdates
+// Every connection gets UUID that can be used to unsubscribe from updates.
+// If first connection for user was established, data will be selected for him and then sent.
+// If there were connections for this user, cached data will be sent.
+// This method creates goroutine to read from notifications channel (one is created for every userID)
 func (s *DataKeeperService) subscribeForUpdates(userID int, stream datakeeper.DataKeeper_GetDataServer) (error, chan error, string) {
 	s.subscriptionsMx.Lock()
 	defer s.subscriptionsMx.Unlock()
@@ -348,6 +370,8 @@ func (s *DataKeeperService) subscribeForUpdates(userID int, stream datakeeper.Da
 	return nil, errChan, subUUID
 }
 
+// unsubscribeFromUpdates removes connection from list.
+// If this connection was last for user then userSubscription will be removed.
 func (s *DataKeeperService) unsubscribeFromUpdates(userID int, UUID string) {
 	s.subscriptionsMx.Lock()
 	defer s.subscriptionsMx.Unlock()
@@ -359,6 +383,7 @@ func (s *DataKeeperService) unsubscribeFromUpdates(userID int, UUID string) {
 	}
 }
 
+// getUserData gets all data associated with userID
 func (s *DataKeeperService) getUserData(ctx context.Context, userID int) (*datakeeper.GetDataResponse, []error) {
 	var passwordPairsResult []*datakeeper.PasswordPair
 	var textResults []*datakeeper.Text
@@ -420,6 +445,7 @@ func (s *DataKeeperService) getUserData(ctx context.Context, userID int) (*datak
 	}, nil
 }
 
+// notifyUserSubs sends notification into channel associated with userID
 func (s *DataKeeperService) notifyUserSubs(userID int) {
 	s.subscriptionsMx.RLock()
 	select {

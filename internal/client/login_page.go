@@ -12,16 +12,19 @@ import (
 	"github.com/bobgromozeka/yp-diploma2/internal/interfaces/user"
 )
 
+// LoginPage page with login form
 type LoginPage struct {
 	app *Application
 }
 
+// NewLoginPage returns pointer of LoginPage
 func NewLoginPage(app *Application) *LoginPage {
 	return &LoginPage{
 		app: app,
 	}
 }
 
+// Render creates login page and returns tview component
 func (p *LoginPage) Render() *tview.Pages {
 	page := pages("Login")
 

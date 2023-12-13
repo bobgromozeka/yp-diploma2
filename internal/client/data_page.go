@@ -31,21 +31,58 @@ const (
 	DataBin
 )
 
+// DataPage page with all views to navigate user data.
+// Contains all tview components that need to be mutated to implement usable interface
+// ===============================
+// |         |        |          |
+// |         |        |          |
+// |         |        |          |
+// |typesList|dataList|entityView|
+// |         |        |          |
+// |         |        |          |
+// |         |        |          |
+// ===============================
+//
+//	actions menu
+//
+// ===============================
 type DataPage struct {
-	app             *Application
-	page            *tview.Pages
+	// app client application dependencies structure
+	app *Application
+
+	// page current page tview component
+	page *tview.Pages
+
+	// currentDataType data type that was selected
 	currentDataType DataType
-	currentFocus    int
-	typesList       *tview.List
-	dataList        *tview.List
-	dataGrid        *tview.Grid
-	entityView      *tview.Grid
-	escFunc         func()
-	pageCtx         context.Context
-	pageCancelCtx   context.CancelFunc
-	fetchingDoneCh  chan struct{}
+
+	// currentFocus page part that was focused
+	currentFocus int
+
+	// typesList list with all data types
+	typesList *tview.List
+
+	// dataList list with all entities of selected type
+	dataList *tview.List
+
+	// dataGrid entityView container
+	dataGrid *tview.Grid
+
+	// entityView grid with selected entity fields
+	entityView *tview.Grid
+
+	// escFunc function that will be executed when Esc was pressed
+	escFunc func()
+
+	// pageCtx current page ctx to control concurrent processes
+	pageCtx context.Context
+
+	// pageCancelCtx pageCtx cancel func
+	pageCancelCtx  context.CancelFunc
+	fetchingDoneCh chan struct{}
 }
 
+// NewDataPage returns pointer to DataPage
 func NewDataPage(app *Application) *DataPage {
 	ctx, cancel := context.WithCancel(app.ctx)
 	dp := &DataPage{
@@ -67,6 +104,8 @@ func NewDataPage(app *Application) *DataPage {
 	return dp
 }
 
+// Render creates data page and returns tview component.
+// Starts concurrent process of stream connection with server to receive data.
 func (p *DataPage) Render() *tview.Pages {
 	p.fetchingDoneCh = p.startFetchingData(p.pageCtx)
 
@@ -116,7 +155,7 @@ func (p *DataPage) render() *tview.Pages {
 
 	actionsNote := tview.NewTextView()
 	actionsNote.
-		SetText("(Ctrl-A) Add new    (Esc) focus previous    ").
+		SetText("(Ctrl-A) Add new    (Esc) focus previous    (Tab) focus next form field").
 		SetTextColor(tcell.ColorGreen)
 
 	emptyGrid := tview.NewGrid()
@@ -148,6 +187,8 @@ func (p *DataPage) render() *tview.Pages {
 	return p.page
 }
 
+// startFetchingData server connection logic.
+// Re-renders opened entities list after receiving new data.
 func (p *DataPage) startFetchingData(ctx context.Context) chan struct{} {
 	doneCh := make(chan struct{})
 	go func() {
@@ -191,6 +232,7 @@ func (p *DataPage) startFetchingData(ctx context.Context) chan struct{} {
 	return doneCh
 }
 
+// renderPasswordPairsList method to render list of password pairs into data block
 func (p *DataPage) renderPasswordPairsList() {
 	if p.dataList != nil {
 		p.dataGrid.RemoveItem(p.dataList)
@@ -219,6 +261,7 @@ func (p *DataPage) renderPasswordPairsList() {
 	p.setFocusData()
 }
 
+// renderTextsList renders list of texts into data block
 func (p *DataPage) renderTextsList() {
 	if p.dataList != nil {
 		p.dataGrid.RemoveItem(p.dataList)
@@ -251,6 +294,7 @@ func (p *DataPage) renderTextsList() {
 	p.setFocusData()
 }
 
+// renderCardsList renders cards list into data block
 func (p *DataPage) renderCardsList() {
 	if p.dataList != nil {
 		p.dataGrid.RemoveItem(p.dataList)
@@ -274,6 +318,7 @@ func (p *DataPage) renderCardsList() {
 	p.setFocusData()
 }
 
+// renderBinsList render binary list into data block
 func (p *DataPage) renderBinsList() {
 	if p.dataList != nil {
 		p.dataGrid.RemoveItem(p.dataList)
@@ -297,10 +342,12 @@ func (p *DataPage) renderBinsList() {
 	p.setFocusData()
 }
 
+// gridAddDataBlock adds primitive into dataGrid
 func (p *DataPage) gridAddDataBlock(prim tview.Primitive) {
 	p.dataGrid.AddItem(prim, 0, 1, 12, 3, 0, 0, false)
 }
 
+// rerenderDataBlock render currently active data block with new data
 func (p *DataPage) rerenderDataBlock() {
 	switch p.currentDataType {
 	case DataPasswordPair:
@@ -314,6 +361,7 @@ func (p *DataPage) rerenderDataBlock() {
 	}
 }
 
+// attachError creates error with specified text and adds it under actions menu of the page
 func (p *DataPage) attachError(text string) {
 	err := tview.NewTextView()
 	err.SetTextColor(tcell.ColorRed)
@@ -322,10 +370,7 @@ func (p *DataPage) attachError(text string) {
 	p.dataGrid.AddItem(err, 13, 0, 1, 4, 0, 0, false)
 }
 
-func (p *DataPage) detachError() {
-
-}
-
+// renderPasswordPairsView render password pair view into entityView
 func (p *DataPage) renderPasswordPairsView(id int, login, password string, description *string) {
 	g := tview.NewGrid()
 	g.SetBorder(true)
@@ -427,6 +472,7 @@ func (p *DataPage) renderPasswordPairsView(id int, login, password string, descr
 	p.setFocusView()
 }
 
+// renderTextsView render texts view into entityView
 func (p *DataPage) renderTextsView(id int, name, text string, description *string) {
 	g := tview.NewGrid()
 	g.SetBorder(true)
@@ -549,6 +595,7 @@ func (p *DataPage) renderTextsView(id int, name, text string, description *strin
 	p.setFocusView()
 }
 
+// renderCardsView render cards view into entityView
 func (p *DataPage) renderCardsView(id int, name, number string, validThroughMonth, validThroughYear, cvv int, description *string) {
 	g := tview.NewGrid()
 	g.SetBorder(true)
@@ -674,6 +721,7 @@ func (p *DataPage) renderCardsView(id int, name, number string, validThroughMont
 	p.setFocusView()
 }
 
+// renderBinsView render binary view into entityView
 func (p *DataPage) renderBinsView(id int, name string, data []byte, description *string) {
 	g := tview.NewGrid()
 	g.SetBorder(true)
@@ -796,26 +844,31 @@ func (p *DataPage) renderBinsView(id int, name string, data []byte, description 
 	p.setFocusView()
 }
 
+// setFocusData sets current focus and app focus to dataList
 func (p *DataPage) setFocusData() {
 	p.currentFocus = FocusData
 	p.app.tApp.SetFocus(p.dataList)
 }
 
+// setFocusView sets current focus and app focus to entityView
 func (p *DataPage) setFocusView() {
 	p.currentFocus = FocusView
 	p.app.tApp.SetFocus(p.entityView)
 }
 
+// setFocusTypes sets current focus and app focus to typesList
 func (p *DataPage) setFocusTypes() {
 	p.currentFocus = FocusType
 	p.app.tApp.SetFocus(p.typesList)
 }
 
+// stopFetching cancels page context and waits for data fetching stop signal to prevent leaks
 func (p *DataPage) stopFetching() {
 	p.pageCancelCtx()
 	<-p.fetchingDoneCh
 }
 
+// clearEntityView clears entityView
 func (p *DataPage) clearEntityView() {
 	emptyGrid := tview.NewGrid()
 	emptyGrid.SetBorder(true)
@@ -825,10 +878,12 @@ func (p *DataPage) clearEntityView() {
 	p.dataGrid.AddItem(emptyGrid, 0, 4, 12, 2, 0, 0, false)
 }
 
+// addConfirmationModal adds specified modal as named modal
 func (p *DataPage) addConfirmationModal(m *tview.Modal) {
 	p.page.AddPage("conf_modal", m, false, true)
 }
 
+// removeConfirmationModal removes named modal
 func (p *DataPage) removeConfirmationModal() {
 	p.page.RemovePage("conf_modal")
 }

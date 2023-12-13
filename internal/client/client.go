@@ -15,10 +15,12 @@ import (
 	"github.com/bobgromozeka/yp-diploma2/internal/server/storage"
 )
 
+// Page common interface for all client pages
 type Page interface {
 	Render() *tview.Pages
 }
 
+// Application dependencies struct to be used in client application
 type Application struct {
 	tApp    *tview.Application
 	uClient user.UserClient
@@ -27,18 +29,22 @@ type Application struct {
 	storage Storage
 }
 
+// ApplicationConfig application config
 type ApplicationConfig struct {
 	Addr string
 }
 
+// Run starts client application and returns error if there was one
 func Run(ctx context.Context, ac ApplicationConfig) error {
-	return NewApplication(ctx, ac).Run()
+	return NewApplication(ctx, ac).run()
 }
 
-func (a *Application) Run() error {
+// run creates first page view (auth page) and renders it
+func (a *Application) run() error {
 	return a.tApp.SetRoot(NewAuthPage(a).Render(), true).Run()
 }
 
+// NewApplication returns pointer to new Application instance with created dependencies
 func NewApplication(ctx context.Context, ac ApplicationConfig) *Application {
 	tApp := tview.NewApplication()
 
@@ -59,6 +65,7 @@ func NewApplication(ctx context.Context, ac ApplicationConfig) *Application {
 	}
 }
 
+// pages helper method to bootstrap common page props
 func pages(title string) *tview.Pages {
 	p := tview.NewPages()
 	p.SetTitle("[green] Gophkeeper " + title + " ")
@@ -67,6 +74,8 @@ func pages(title string) *tview.Pages {
 	return p
 }
 
+// addLoadingTextView creates text and runs mutations in goroutine for it to look like loader.
+// ctx should be canceled to stop goroutine with mutations
 func addLoadingTextView(ctx context.Context, app *tview.Application) *tview.TextView {
 	tv := tview.NewTextView()
 	tv.
@@ -108,6 +117,7 @@ func addLoadingTextView(ctx context.Context, app *tview.Application) *tview.Text
 	return tv
 }
 
+// createErrorText creates text view with "error" styles
 func createErrorText(text string) *tview.TextView {
 	tv := tview.NewTextView()
 	tv.

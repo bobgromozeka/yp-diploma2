@@ -9,6 +9,7 @@ type mxErrors struct {
 	data []error
 }
 
+// WaitForAll waits for all specified goroutines finish. Returns slices of all occurred errors.
 func WaitForAll(fns ...func() error) []error {
 	waitLen := len(fns)
 

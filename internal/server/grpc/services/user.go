@@ -20,6 +20,7 @@ var (
 	ErrInternalServerError = status.Errorf(codes.Internal, "Internal server error")
 )
 
+// UserService implementation of gRPC user service
 type UserService struct {
 	user.UnimplementedUserServer
 	us storage.UserStorage
@@ -31,6 +32,7 @@ func NewUserService(us storage.UserStorage) *UserService {
 	}
 }
 
+// SignUp Creates new user. Returns error if password is too short or if login already exists.
 func (s *UserService) SignUp(ctx context.Context, req *user.SignUpRequest) (*user.SignUpResponse, error) {
 	if len(req.Password) < minPasswordLen {
 		return &user.SignUpResponse{
@@ -71,6 +73,7 @@ func (s *UserService) SignUp(ctx context.Context, req *user.SignUpRequest) (*use
 	}, nil
 }
 
+// SignIn authenticates user. Checks login and password and creates new JWT if no errors occurred.
 func (s *UserService) SignIn(ctx context.Context, req *user.SignInRequest) (*user.SignInResponse, error) {
 	u, uErr := s.us.GetUser(ctx, req.Login)
 	if uErr != nil {

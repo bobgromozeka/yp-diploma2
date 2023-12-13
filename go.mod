@@ -9,6 +9,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.18
 	github.com/rivo/tview v0.0.0-20231126152417-33a1d271f2b6
 	github.com/stretchr/testify v1.8.4
+	go.uber.org/mock v0.3.0
 	golang.org/x/crypto v0.12.0
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0

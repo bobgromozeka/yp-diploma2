@@ -5,14 +5,18 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/bobgromozeka/yp-diploma2/internal/server/storage"
-
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/bobgromozeka/yp-diploma2/internal/server/grpc"
+	"github.com/bobgromozeka/yp-diploma2/internal/server/storage"
 	"github.com/bobgromozeka/yp-diploma2/pkg/helpers"
 )
 
+// Run starts server application.
+// 1. Connects to database
+// 2. Creates tables if needed
+// 3. Creates storages
+// 4. Runs gRPC server
 func Run(addr string) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
@@ -20,7 +24,7 @@ func Run(addr string) {
 	if dbErr != nil {
 		log.Fatalln("db open error: ", dbErr)
 	}
-	bootstrap(db)
+	storage.Bootstrap(db)
 
 	storagesFactory := storage.NewSQLiteStoragesFactory(db)
 

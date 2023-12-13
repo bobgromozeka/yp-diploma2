@@ -63,6 +63,8 @@ type CreateCardParams struct {
 	Description       *string
 }
 
+//go:generate mockgen -source ./storage.go -destination storage_mock.go -package storage
+
 type UserStorage interface {
 	CreateUser(ctx context.Context, login string, password []byte) error
 	GetUser(ctx context.Context, login string) (*User, error)
